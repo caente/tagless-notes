@@ -158,6 +158,13 @@ object main extends App{
   println("push_neg ti2:" +  (ti2 |> push_negI |> view ))
   println("view flatten ti2:" + (ti2 |> flataI |> view))
   println("view normI ti2:" + (ti2 |> normI |> view))
+  /*
+  Initial
+  view ti2:((8 + (-(1 + 2))) + 8)
+  push_neg ti2:((8 + ((-1) + (-2))) + 8)
+  view flatten ti2:(8 + ((-(1 + 2)) + 8))
+  view normI ti2:(8 + ((-1) + ((-2) + 8)))
+  */
 
   sealed trait CtxL[+A]
   case class LCA[A](a:A) extends CtxL[A]
@@ -192,4 +199,11 @@ object main extends App{
   println("push_neg tf3:" + (tf3[Signed[String]] |> push_negF))
   println("view flatten tf3:" + (tf3[Balanced[String]] |> flataF ))
   println("view norm tf3:" + (tf3[Normalized[String]] |> normF))
+  /*
+  Final
+  view tf3:((8 + -(1 + 2)) + 8)
+  push_neg tf3:((8 + (-1 + -2)) + 8)
+  view flatten tf3:(8 + (-(1 + 2) + 8))
+  view norm tf3:(8 + (-1 + (-2 + 8)))
+  */
 }
