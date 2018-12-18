@@ -90,8 +90,6 @@ object tagless extends App {
   }
 
   {
-    case class S[H, A]( unS: Int => String )
-
     implicit object SymanticsS extends Symantics[S] {
       def int[H]( i: Int ): S[H, Int] = S( _ => i.toString )
       def add[H]( e1: S[H, Int], e2: S[H, Int] ): S[H, Int] = S( h => s"( ${e1.unS( h )} + ${e2.unS( h )} )" )
@@ -107,6 +105,7 @@ object tagless extends App {
           s"( ${f.unS( h )} ${a.unS( h )} )" )
     }
 
+    case class S[H, A]( unS: Int => String )
     def view[A]( e: S[Unit, A] ) = e.unS( 0 )
 
     println( "view td1: " + view( td1 ) ) // ( 1 + 2 )
