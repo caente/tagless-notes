@@ -41,7 +41,7 @@ object tagless extends App {
     def int[H]( i: Int ): T[H, Int]
     def add[H]( e1: T[H, Int], e2: T[H, Int] ): T[H, Int]
     def z[H, A]: T[( A, H ), A]
-    def s[H, A, Z]( t: T[H, A] ): T[( Z, H ), A]
+    def s[H, A, any]( t: T[H, A] ): T[( any, H ), A]
     def lam[H, A, B]( t: T[( A, H ), B] ): T[H, A => B]
     def app[H, A, B]( f: T[H, A => B], a: T[H, A] ): T[H, B]
   }
@@ -66,25 +66,56 @@ object tagless extends App {
   //  lam( app( z[H, Int] )( z[H, Int] ) )
   //}
 
-  implicit object SymanticsR extends Symantics[R] {
-    def int[H]( i: Int ): R[H, Int] = R( _ => i )
-    def add[H]( e1: R[H, Int], e2: R[H, Int] ): R[H, Int] = R( h => e1.unR( h ) + e2.unR( h ) )
-    def z[H, A]: R[( A, H ), A] = R( { case ( x, _ ) => x } )
-    def s[H, A, any]( v: R[H, A] ): R[( any, H ), A] = R( { case ( _, h ) => v.unR( h ) } )
-    def lam[H, A, B]( e: R[( A, H ), B] ): R[H, A => B] = R( h => x => e.unR( x, h ) )
-    def app[H, A, B]( f: R[H, A => B], a: R[H, A] ): R[H, B] = R( h => f.unR( h )( a.unR( h ) ) )
+  {
+    implicit object SymanticsR extends Symantics[R] {
+      def int[H]( i: Int ): R[H, Int] = R( _ => i )
+      def add[H]( e1: R[H, Int], e2: R[H, Int] ): R[H, Int] = R( h => e1.unR( h ) + e2.unR( h ) )
+      def z[H, A]: R[( A, H ), A] = R( { case ( x, _ ) => x } )
+      def s[H, A, any]( v: R[H, A] ): R[( any, H ), A] = R( { case ( _, h ) => v.unR( h ) } )
+      def lam[H, A, B]( e: R[( A, H ), B] ): R[H, A => B] = R( h => x => e.unR( x, h ) )
+      def app[H, A, B]( f: R[H, A => B], a: R[H, A] ): R[H, B] = R( h => f.unR( h )( a.unR( h ) ) )
+    }
+
+    case class R[H, A]( unR: H => A )
+    def eval[A]( e: R[Unit, A] ) = e.unR( () )
+
+    println( "eval td1: " + eval( td1 ) ) // 3
+
+    //eval( td2o ) // won't compile because it's open
+
+    println( "eval td3: " + eval( td3 ) )
+
+    println( "eval td3 (_ + 2): " + eval( td3 )( _ + 1 ) ) // 4
+
   }
 
-  case class R[H, A]( unR: H => A )
-  def eval[A]( e: R[Unit, A] ) = e.unR( () )
+  {
+    case class S[H, A]( unS: Int => String )
 
-  println( "eval td1: " + eval( td1 ) ) // 3
+    implicit object SymanticsS extends Symantics[S] {
+      def int[H]( i: Int ): S[H, Int] = S( _ => i.toString )
+      def add[H]( e1: S[H, Int], e2: S[H, Int] ): S[H, Int] = S( h => s"( ${e1.unS( h )} + ${e2.unS( h )} )" )
+      def z[H, A]: S[( A, H ), A] = S( h => s"x${h - 1}" )
+      def s[H, A, any]( t: S[H, A] ): S[( any, H ), A] = S( h => s"${t.unS( h - 1 )}" )
+      def lam[H, A, B]( t: S[( A, H ), B] ): S[H, A => B] =
+        S( h => {
+          val x = s"x$h"
+          s"( $x => ${t.unS( h + 1 )} )"
+        } )
+      def app[H, A, B]( f: S[H, A => B], a: S[H, A] ): S[H, B] =
+        S( h =>
+          s"( ${f.unS( h )} ${a.unS( h )} )" )
+    }
 
-  //eval( td2o ) // won't compile because it's open
+    def view[A]( e: S[Unit, A] ) = e.unS( 0 )
 
-  println( "eval td3: " + eval( td3 ) )
+    println( "view td1: " + view( td1 ) ) // ( 1 + 2 )
 
-  println( "eval td3 (_ + 2): " + eval( td3 )( _ + 1 ) ) // 4
+    //view( td2o ) // won't compile because it's open
+
+    println( "view td3: " + view( td3 ) ) // ( x0 => ( ( x0 1 ) + 2 ) )
+
+  }
 
 }
 
