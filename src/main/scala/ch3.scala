@@ -39,32 +39,52 @@ object initial {
 object tagless extends App {
   trait Symantics[T[_, _]] {
     def int[H]( i: Int ): T[H, Int]
-    def add[H]: T[H, Int] => T[H, Int] => T[H, Int]
+    def add[H]( e1: T[H, Int], e2: T[H, Int] ): T[H, Int]
     def z[H, A]: T[( A, H ), A]
     def s[H, A, Z]( t: T[H, A] ): T[( Z, H ), A]
     def lam[H, A, B]( t: T[( A, H ), B] ): T[H, A => B]
-    def app[H, A, B]: T[H, A => B] => T[H, A] => T[H, B]
+    def app[H, A, B]( f: T[H, A => B], a: T[H, A] ): T[H, B]
   }
 
   def td1[T[_, _], H]( implicit T: Symantics[T] ): T[H, Int] = {
     import T._
-    add( int( 1 ) )( int( 2 ) )
+    add( int( 1 ), int( 2 ) )
   }
 
   def td2o[T[_, _], H]( implicit T: Symantics[T] ): T[( Int, H ), Int => Int] = {
     import T._
-    lam( add( z[( Int, H ), Int] )( s( z[H, Int] ) ) )
+    lam( add( z[( Int, H ), Int], s( z[H, Int] ) ) )
   }
 
   def td3[T[_, _], H]( implicit T: Symantics[T] ): T[H, ( Int => Int ) => Int] = {
     import T._
-    lam( add( app( z[H, Int => Int] )( int( 1 ) ) )( int( 2 ) ) )
+    lam( add( app( z[H, Int => Int], int( 1 ) ), int( 2 ) ) )
   }
 
   //def error[T[_, _], H]( implicit T: Symantics[T] ) = {
   //  import T._
   //  lam( app( z[H, Int] )( z[H, Int] ) )
   //}
+
+  implicit object SymanticsR extends Symantics[R] {
+    def int[H]( i: Int ): R[H, Int] = R( _ => i )
+    def add[H]( e1: R[H, Int], e2: R[H, Int] ): R[H, Int] = R( h => e1.unR( h ) + e2.unR( h ) )
+    def z[H, A]: R[( A, H ), A] = R( { case ( x, _ ) => x } )
+    def s[H, A, Z]( v: R[H, A] ): R[( Z, H ), A] = R( { case ( _, h ) => v.unR( h ) } )
+    def lam[H, A, B]( e: R[( A, H ), B] ): R[H, A => B] = R( h => x => e.unR( x, h ) )
+    def app[H, A, B]( f: R[H, A => B], a: R[H, A] ): R[H, B] = R( h => f.unR( h )( a.unR( h ) ) )
+  }
+
+  case class R[H, A]( unR: H => A )
+  def eval[A]( e: R[Unit, A] ) = e.unR( () )
+
+  println( "eval td1: " + eval( td1 ) )
+
+  //eval( td2o ) // won't compile because it's open
+
+  println( "eval td3: " + eval( td3 ) )
+
+  println( "eval td3 (_ + 2): " + eval( td3 )( _ + 1 ) )
 
 }
 
