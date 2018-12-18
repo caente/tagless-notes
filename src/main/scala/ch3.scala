@@ -70,7 +70,7 @@ object tagless extends App {
     def int[H]( i: Int ): R[H, Int] = R( _ => i )
     def add[H]( e1: R[H, Int], e2: R[H, Int] ): R[H, Int] = R( h => e1.unR( h ) + e2.unR( h ) )
     def z[H, A]: R[( A, H ), A] = R( { case ( x, _ ) => x } )
-    def s[H, A, Z]( v: R[H, A] ): R[( Z, H ), A] = R( { case ( _, h ) => v.unR( h ) } )
+    def s[H, A, any]( v: R[H, A] ): R[( any, H ), A] = R( { case ( _, h ) => v.unR( h ) } )
     def lam[H, A, B]( e: R[( A, H ), B] ): R[H, A => B] = R( h => x => e.unR( x, h ) )
     def app[H, A, B]( f: R[H, A => B], a: R[H, A] ): R[H, B] = R( h => f.unR( h )( a.unR( h ) ) )
   }
