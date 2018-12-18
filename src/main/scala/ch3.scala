@@ -78,13 +78,13 @@ object tagless extends App {
   case class R[H, A]( unR: H => A )
   def eval[A]( e: R[Unit, A] ) = e.unR( () )
 
-  println( "eval td1: " + eval( td1 ) )
+  println( "eval td1: " + eval( td1 ) ) // 3
 
   //eval( td2o ) // won't compile because it's open
 
   println( "eval td3: " + eval( td3 ) )
 
-  println( "eval td3 (_ + 2): " + eval( td3 )( _ + 1 ) )
+  println( "eval td3 (_ + 2): " + eval( td3 )( _ + 1 ) ) // 4
 
 }
 
