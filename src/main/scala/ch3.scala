@@ -36,7 +36,7 @@ object initial {
 
 }
 
-object tagless extends App {
+object Symantics1 {
   trait Symantics[T[_, _]] {
     def int[H]( i: Int ): T[H, Int]
     def add[H]( e1: T[H, Int], e2: T[H, Int] ): T[H, Int]
@@ -116,5 +116,14 @@ object tagless extends App {
 
   }
 
+}
+
+object Symantics2 {
+  trait Symantics[T[_]] {
+    def int( i: Int ): T[Int]
+    def add( t1: T[Int], t2: T[Int] ): T[Int]
+    def lam[A, B]( f: T[A] => T[B] ): T[A => B]
+    def app[A, B]( f: T[A => B], a: T[A] ): T[B]
+  }
 }
 
