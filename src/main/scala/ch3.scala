@@ -125,5 +125,67 @@ object Symantics2 {
     def lam[A, B]( f: T[A] => T[B] ): T[A => B]
     def app[A, B]( f: T[A => B], a: T[A] ): T[B]
   }
+
+  def th1[T[_]]( implicit T: Symantics[T] ): T[Int] = {
+    import T._
+    add( int( 1 ), int( 2 ) )
+  }
+
+  def th2[T[_]]( implicit T: Symantics[T] ): T[Int => Int] = {
+    import T._
+    lam( x => add( x, x ) )
+  }
+
+  def th3[T[_]]( implicit T: Symantics[T] ): T[( Int => Int ) => Int] = {
+    import T._
+    lam( ( x: T[Int => Int] ) => add( app( x, int( 1 ) ), int( 2 ) ) )
+  }
+
+  {
+    case class R[A]( unR: A )
+    implicit object SymanticsR extends Symantics[R] {
+      def int( i: Int ): R[Int] = R( i )
+      def add( t1: R[Int], t2: R[Int] ): R[Int] = R( t1.unR + t2.unR )
+      def lam[A, B]( f: R[A] => R[B] ): R[A => B] = R( a => f( R( a ) ).unR )
+      def app[A, B]( f: R[A => B], a: R[A] ): R[B] = R( f.unR( a.unR ) )
+    }
+
+    def eval[A]( r: R[A] ) = r.unR
+
+    println( "eval th1: " + eval( th1 ) ) // 3
+
+    println( "eval th2: " + eval( th2 )( 1 ) ) // 2
+
+    println( "eval th3: " + eval( th3 ) )
+
+    println( "eval th3 (_ + 2): " + eval( th3 )( _ + 2 ) ) // 5
+
+  }
+
+  {
+    case class S[A]( unS: Int => String )
+    implicit object SymanticsS extends Symantics[S] {
+      def int( i: Int ): S[Int] = S( _ => i.toString )
+      def add( e1: S[Int], e2: S[Int] ): S[Int] = S( h => s"( ${e1.unS( h )} + ${e2.unS( h )} )" )
+      def lam[A, B]( f: S[A] => S[B] ): S[A => B] =
+        S( h => {
+          val x = s"x$h"
+          s"( $x => ${f( S( _ => x ) ).unS( h + 1 )} )"
+        } )
+      def app[A, B]( f: S[A => B], a: S[A] ): S[B] =
+        S( h =>
+          s"( ${f.unS( h )} ${a.unS( h )} )" )
+    }
+
+    def view[A]( e: S[A] ) = e.unS( 0 )
+
+    println( "view th1: " + view( th1 ) ) // ( 1 + 2 )
+
+    println( "view th2: " + view( th2 ) ) // ( x0 => ( x0 + x0 ) )
+
+    println( "view th3: " + view( th3 ) ) // ( x0 => ( ( x0 1 ) + 2 ) )
+
+  }
+
 }
 
